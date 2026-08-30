@@ -1,38 +1,37 @@
 # bitBlockfinder
 
-Zeigt auf einem **Waveshare ESP32-S3-Touch-AMOLED-1.8**, wer den aktuellen
-Bitcoin-Block gefunden hat und wie lange das her ist.
+Shows on a **Waveshare ESP32-S3-Touch-AMOLED-1.8** who found the current
+Bitcoin block and how long ago that was.
 
 <p>
-  <img src="doc/block.png" width="270" alt="Seite 1: gefundener Block">
-  <img src="doc/network.png" width="270" alt="Seite 2: Netz und Gerät">
+  <img src="doc/block.png" width="270" alt="Page 1: the block that was found">
+  <img src="doc/network.png" width="270" alt="Page 2: network and device">
 </p>
 
-Zwei Seiten, gewischt wird mit dem Finger:
+Two pages, swipe with your finger:
 
-1. **Block** — der Pool auf orangem Grund, das Alter des Blocks, die
-   Blockhöhe, Transaktionen, Belohnung und Gebühren. Oben rechts der
-   BTC-Kurs. Die Altersangabe wird orange, wenn es über zwanzig Minuten
-   her ist.
-2. **Netz und Gerät** — Blockzeit, Hashrate, Schwierigkeitsanpassung,
-   Gebührenempfehlung, Mempool, Kurs, die drei größten Pools der letzten
-   24 Stunden, dazu WLAN, Laufzeit und Alter des letzten Abrufs.
+1. **Block** — the pool on an orange field, the block's age, its height,
+   transactions and reward. Top left the BTC price, top right the clock.
+   The age turns orange once it's older than twenty minutes.
+2. **Network and device** — block time, hashrate, difficulty adjustment,
+   fee estimate, mempool, price, the three biggest pools of the last
+   24 hours, plus WiFi, uptime and the age of the last update.
 
-Der obere der beiden Knöpfe schaltet die Helligkeit in drei Stufen durch.
-Nach 30 Sekunden ohne Berührung dimmt das Display, ganz aus geht es nie.
+The upper of the two buttons cycles brightness through three steps.
+After 30 seconds without touch the display dims; it never turns fully off.
 
-## Was man braucht
+## What you need
 
-* Waveshare ESP32-S3-Touch-AMOLED-1.8 (16 MB Flash, 8 MB PSRAM)
-* USB-C-auf-USB-C-**Datenkabel** — ein reines Ladekabel reicht nicht
-* WLAN im 2,4-GHz-Band
-* ESP-IDF 5.5 oder neuer
+* Waveshare ESP32-S3-Touch-AMOLED-1.8 (16 MB flash, 8 MB PSRAM)
+* USB-C-to-USB-C **data cable** — a charge-only cable won't work
+* WiFi on the 2.4 GHz band
+* ESP-IDF 5.5 or newer
 
-Kein Konto, kein API-Schlüssel, keine eigene Node.
+No account, no API key, no node of your own.
 
 ## Installation
 
-**1. ESP-IDF einrichten** — einmalig, dauert ein paar Minuten:
+**1. Set up ESP-IDF** — one time, takes a few minutes:
 
 ```bash
 git clone -b v5.5.5 --depth 1 --recursive https://github.com/espressif/esp-idf.git ~/esp/esp-idf
@@ -42,7 +41,7 @@ git clone -b v5.5.5 --depth 1 --recursive https://github.com/espressif/esp-idf.g
 cd ~/esp/esp-idf && ./install.sh esp32s3
 ```
 
-**2. Repo holen und WLAN eintragen:**
+**2. Get this repo and set your WiFi:**
 
 ```bash
 git clone https://github.com/thisdev/bitBlockfinder.git
@@ -52,77 +51,79 @@ git clone https://github.com/thisdev/bitBlockfinder.git
 cd bitBlockfinder && cp local.defaults.example local.defaults
 ```
 
-In `local.defaults` stehen SSID und Passwort. Die Datei ist in der
-`.gitignore` und bleibt lokal.
+Edit `local.defaults` with your SSID and password. The file is in
+`.gitignore` and stays local.
 
-**3. Board anschließen und flashen:**
+**3. Connect the board and flash:**
 
 ```bash
 ./flash.sh
 ```
 
-Das baut, flasht und öffnet den seriellen Monitor; beendet wird er mit
-Strg-]. `flash.sh` lädt die ESP-IDF-Umgebung selbst und sucht den Port des
-Boards. Von Hand geht es genauso mit `source activate.sh` und
-`idf.py build flash monitor`.
+Builds, flashes and opens the serial monitor; exit it with Ctrl-]. `flash.sh`
+loads the ESP-IDF environment itself and finds the board's port. By hand,
+the same thing is `source activate.sh` followed by `idf.py build flash
+monitor`.
 
-Die Abhängigkeiten (Waveshare-BSP, LVGL) zieht der Component Manager beim
-ersten Bauen von selbst.
+Dependencies (the Waveshare BSP, LVGL) are pulled in by the component
+manager on first build.
 
-## Einstellungen
+## Settings
 
-Entweder in `local.defaults` oder über `idf.py menuconfig` → *Blockfinder*:
+Either in `local.defaults` or via `idf.py menuconfig` → *Blockfinder*:
 
-| Option | Vorgabe | Bedeutung |
+| Option | Default | Meaning |
 |---|---|---|
-| `CONFIG_BF_WIFI_SSID` / `_PASS` | — | Zugangsdaten |
-| `CONFIG_BF_POLL_S` | `60` | Sekunden zwischen zwei Nachfragen |
-| `CONFIG_BF_SHOT_ENABLE` | aus | stellt `/shot` und `/page?n=` für Bildschirmaufnahmen bereit |
+| `CONFIG_BF_WIFI_SSID` / `_PASS` | — | WiFi credentials |
+| `CONFIG_BF_POLL_S` | `60` | seconds between two checks for a new block |
+| `CONFIG_BF_SHOT_ENABLE` | off | serves `/shot` and `/page?n=` for screenshots |
 
-## Woher die Daten kommen
+## Where the data comes from
 
-Von [mempool.space](https://mempool.space) über die öffentliche
-REST-Schnittstelle:
+From [mempool.space](https://mempool.space)'s public REST API:
 
-| Endpunkt | wofür | Größe | wie oft |
+| Endpoint | for | size | how often |
 |---|---|---|---|
-| `/api/blocks/tip/hash` | gibt es einen neuen Block? | 64 B | jede Minute |
-| `/api/v1/block/<hash>` | Pool, Zeit, Gebühren | ~2 KB | nur bei neuem Block |
-| `/api/v1/difficulty-adjustment` | Blockzeit, Retarget | 340 B | alle 10 min |
-| `/api/v1/fees/recommended` | Gebührenempfehlung | 74 B | alle 10 min |
-| `/api/mempool` | wartende Transaktionen | ~4 KB | alle 10 min |
-| `/api/v1/mining/pools/24h` | Pools, Hashrate | ~3 KB | alle 10 min |
-| `/api/v1/prices` | BTC-Kurs | 108 B | alle 10 min |
+| `/api/blocks/tip/hash` | is there a new block? | 64 B | every minute |
+| `/api/v1/block/<hash>` | pool, time, fees | ~2 KB | only on a new block |
+| `/api/v1/difficulty-adjustment` | block time, retarget | 340 B | every 10 min |
+| `/api/v1/fees/recommended` | fee estimate | 74 B | every 10 min |
+| `/api/mempool` | pending transactions | ~4 KB | every 10 min |
+| `/api/v1/mining/pools/24h` | pools, hashrate | ~3 KB | every 10 min |
+| `/api/v1/prices` | BTC price | 108 B | every 10 min |
 
-Der Kniff ist die erste Zeile. Statt jede Minute die Liste der letzten
-fünfzehn Blöcke zu holen — 30 KB — fragt das Gerät nach dem Hash des
-obersten Blocks und holt den Block selbst erst, wenn dieser Hash ein
-anderer ist als der bekannte.
+The trick is the first line. Instead of fetching the list of the last
+fifteen blocks every minute — 30 KB — the device asks for the hash of the
+tip block and only fetches the block itself once that hash differs from
+the one it already knows.
 
-Das **Alter rechnet das Gerät selbst** aus der Blockzeit und der NTP-Uhr
-aus. Die Minutenzahl läuft weiter, auch wenn das WLAN gerade weg ist.
-Fällt eine der Anfragen aus, behält der betroffene Wert seinen letzten
-Stand, statt auf null zu springen.
+The device computes the block's **age itself** from the block time and
+the NTP clock, so the minute count keeps advancing even while WiFi is
+down. If one of the requests fails, that value keeps its last known
+state instead of dropping to zero.
 
-## Aufbau
+## Layout
 
-| Datei | |
+| File | |
 |---|---|
-| `main/bitblockfinder.c` | Ablauf: was wann geholt und gezeichnet wird |
-| `main/chain.c` | Antworten von mempool.space auswerten |
-| `main/fetch.c` | HTTPS gegen das Wurzelzertifikat-Bundle |
-| `main/ui.c` | die beiden Seiten |
-| `main/net.c`, `clock.c` | WLAN und NTP |
-| `main/backlight.c` | Knopf und Ruheabsenkung |
-| `main/shot.c` | Bildschirmaufnahmen über HTTP, standardmäßig aus |
-| `main/schrift/` | Comic Neue als LVGL-Schriften |
+| `main/bitblockfinder.c` | flow: what gets fetched and drawn, and when |
+| `main/chain.c` | parsing mempool.space's responses |
+| `main/fetch.c` | HTTPS against the root certificate bundle |
+| `main/ui.c` | the two pages |
+| `main/net.c`, `clock.c` | WiFi and NTP |
+| `main/backlight.c` | button and idle dimming |
+| `main/shot.c` | HTTP screenshots, off by default |
+| `main/schrift/` | Comic Neue as LVGL fonts |
 
-## Schrift und Farben
+## Font, colors and license
 
-Die Schrift ist **Comic Neue** unter der SIL Open Font License; Lizenz und
-Erzeugung stehen in [`main/schrift/`](main/schrift/README.md).
+The font is **Comic Neue** under the SIL Open Font License; license and
+build steps are in [`main/schrift/`](main/schrift/README.md).
 
-Die Farben stammen aus dem Stylesheet von mempool.space: Untergrund
-`#11131f`, Karten `#272f4e`, dazu deren Akzentfarben auf der zweiten
-Seite. Die erste Seite kommt mit Weiß und dem Bitcoin-Orange `#f7931a`
-aus — sie soll gelesen und nicht entschlüsselt werden.
+Colors are taken from mempool.space's own stylesheet: background
+`#11131f`, cards `#272f4e`, plus their accent colors on the second page.
+The first page uses only white and Bitcoin orange `#f7931a` — it's meant
+to be read, not decoded.
+
+The code is [MIT-licensed](LICENSE): free to use, modify and share,
+attribution required.

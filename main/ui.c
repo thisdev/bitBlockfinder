@@ -47,7 +47,7 @@ LV_FONT_DECLARE(comic_40);
 #define HEAD_INSET  44
 
 /* Breite, die dem Poolnamen auf der orangen Flaeche zur Verfuegung steht. */
-#define POOL_W      300
+#define POOL_W      280
 
 /* Zeilen der zweiten Seite. */
 #define ROWS        15
@@ -55,7 +55,7 @@ LV_FONT_DECLARE(comic_40);
 
 /* --- Seite 1 --- */
 static lv_obj_t *s_clock, *s_price, *s_band, *s_band_cap, *s_pool;
-static lv_obj_t *s_age, *s_height, *s_footer, *s_status;
+static lv_obj_t *s_age, *s_height, *s_status;
 static lv_obj_t *s_tile_a, *s_tile_a_val, *s_tile_a_cap;
 static lv_obj_t *s_tile_b, *s_tile_b_val, *s_tile_b_cap;
 
@@ -143,24 +143,22 @@ static lv_obj_t *make_tile(lv_obj_t *parent, lv_obj_t **val, lv_obj_t **cap)
 
 static void build_page_block(lv_obj_t *p)
 {
-    /* Kopfzeile wie bei mempool.space: links die Uhr, rechts der Kurs. */
+    /* Preis links, groesser als der Rest der Kopfzeile -- er ist die
+     * zweite Zahl, die auf einen Blick zaehlt. Uhr rechts, klein. */
+    s_price = label(p, &comic_20, COL_ORANGE);
+    lv_label_set_text(s_price, "");
+    lv_obj_align(s_price, LV_ALIGN_TOP_LEFT, HEAD_INSET - 8, HEAD_Y - 3);
+
     s_clock = label(p, &comic_14, COL_DIM);
     lv_label_set_text(s_clock, "--:--");
-    lv_obj_align(s_clock, LV_ALIGN_TOP_LEFT, HEAD_INSET, HEAD_Y);
-
-    lv_obj_t *t = label(p, &comic_14, COL_DIM);
-    lv_label_set_text(t, "bitBlockfinder");
-    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, HEAD_Y);
-
-    s_price = label(p, &comic_14, COL_ORANGE);
-    lv_label_set_text(s_price, "");
-    lv_obj_align(s_price, LV_ALIGN_TOP_RIGHT, -HEAD_INSET, HEAD_Y);
+    lv_obj_align(s_clock, LV_ALIGN_TOP_RIGHT, -HEAD_INSET, HEAD_Y);
 
     /* Die orange Flaeche traegt die eine Antwort, um die es auf dieser
-     * Seite geht. Alles andere darunter begruendet sie nur. */
+     * Seite geht. Alles andere darunter begruendet sie nur. Kleiner als
+     * zuvor, damit der Preis oben mehr Gewicht bekommt. */
     s_band = lv_obj_create(p);
-    lv_obj_set_size(s_band, 320, 124);
-    lv_obj_align(s_band, LV_ALIGN_TOP_MID, 0, 56);
+    lv_obj_set_size(s_band, 300, 100);
+    lv_obj_align(s_band, LV_ALIGN_TOP_MID, 0, 60);
     lv_obj_set_style_bg_color(s_band, COL_ORANGE, 0);
     lv_obj_set_style_border_width(s_band, 0, 0);
     lv_obj_set_style_radius(s_band, 10, 0);
@@ -185,20 +183,16 @@ static void build_page_block(lv_obj_t *p)
 
     s_age = label(p, &comic_28, COL_TEXT);
     lv_label_set_text(s_age, "");
-    lv_obj_align(s_age, LV_ALIGN_TOP_MID, 0, 192);
+    lv_obj_align(s_age, LV_ALIGN_TOP_MID, 0, 172);
 
     s_height = label(p, &comic_20, COL_TEXT);
     lv_label_set_text(s_height, "");
-    lv_obj_align(s_height, LV_ALIGN_TOP_MID, 0, 234);
+    lv_obj_align(s_height, LV_ALIGN_TOP_MID, 0, 214);
 
     s_tile_a = make_tile(p, &s_tile_a_val, &s_tile_a_cap);
     s_tile_b = make_tile(p, &s_tile_b_val, &s_tile_b_cap);
-    lv_obj_align(s_tile_a, LV_ALIGN_TOP_MID, -82, 270);
-    lv_obj_align(s_tile_b, LV_ALIGN_TOP_MID,  82, 270);
-
-    s_footer = label(p, &comic_14, COL_DIM);
-    lv_label_set_text(s_footer, "");
-    lv_obj_align(s_footer, LV_ALIGN_BOTTOM_MID, 0, -48);
+    lv_obj_align(s_tile_a, LV_ALIGN_TOP_MID, -82, 250);
+    lv_obj_align(s_tile_b, LV_ALIGN_TOP_MID,  82, 250);
 
     s_status = label(p, &comic_14, COL_DIM);
     lv_label_set_text(s_status, "starting ...");
@@ -345,7 +339,6 @@ static void update_block(const ui_state_t *st)
         lv_label_set_text(s_pool, "--");
         lv_label_set_text(s_age, "");
         lv_label_set_text(s_height, "");
-        lv_label_set_text(s_footer, "");
         lv_obj_add_flag(s_tile_a, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_tile_b, LV_OBJ_FLAG_HIDDEN);
         return;
@@ -377,17 +370,15 @@ static void update_block(const ui_state_t *st)
     lv_label_set_text(s_tile_a_cap, "transactions");
     lv_obj_clear_flag(s_tile_a, LV_OBJ_FLAG_HIDDEN);
 
-    /* Die Belohnung sind neue Muenzen plus Gebuehren. Drei Nachkommastellen
-     * reichen: Die Halbierung auf 3,125 BTC ist damit zu sehen, das
-     * Rauschen der Gebuehren steht darunter in Sats. */
+    /* Drei Nachkommastellen: Die Belohnung sind neue Muenzen plus
+     * Gebuehren, die Halbierung auf 3,125 BTC ist damit zu sehen. Die
+     * Gebuehren selbst stehen nirgends einzeln -- bei ueblichen paar
+     * hundert Sat waeren sie ohnehin nur eine Fussnote im Kleingedruckten. */
     snprintf(zahl, sizeof(zahl), "%.3f", (double)b->reward / 1e8);
     lv_label_set_text(s_tile_b_val, zahl);
     lv_obj_set_style_text_color(s_tile_b_val, COL_ORANGE, 0);
     lv_label_set_text(s_tile_b_cap, "BTC reward");
     lv_obj_clear_flag(s_tile_b, LV_OBJ_FLAG_HIDDEN);
-
-    gruppiert(zahl, sizeof(zahl), (long)b->fees);
-    lv_label_set_text_fmt(s_footer, "including %s sat in fees", zahl);
 }
 
 /* Eine Zeile der zweiten Seite setzen. */
