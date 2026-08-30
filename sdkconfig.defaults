@@ -1,0 +1,50 @@
+# --- Board: Waveshare ESP32-S3-Touch-AMOLED-1.8 (ESP32-S3R8, 16 MB Flash) ---
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# 8 MB embedded PSRAM des ESP32-S3R8 -> oktal. Ohne das kein LVGL.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+CONFIG_FREERTOS_HZ=1000
+
+# Grosse Schriften. Der Name des Pools soll aus zwei Metern lesbar sein.
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_28=y
+CONFIG_LV_FONT_MONTSERRAT_40=y
+
+# app_main baut die Oberflaeche auf und holt danach HTTPS-Antworten.
+# Die Standardgroesse ist dafuer zu knapp.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# mempool.space spricht ausschliesslich HTTPS. Das mitgelieferte
+# Wurzelzertifikat-Bundle erspart es, einzelne Zertifikate zu pflegen --
+# die wuerden sonst irgendwann ablaufen und das Geraet stumm schalten.
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y
+
+# Erlaubt Bildschirmaufnahmen fuer die Dokumentation
+CONFIG_LV_USE_SNAPSHOT=y
+
+# --- Zeichenpuffer und TLS muessen sich denselben internen Speicher teilen ---
+#
+# Beim bitSolarPlaner hat genau das den Bildaufbau nach zwei
+# TLS-Verbindungen zum Stehen gebracht: Das BSP legt den LVGL-Puffer ohne
+# DMA-Kennzeichnung an, der SPI-Treiber muss deshalb vor jeder Uebertragung
+# eine Kopie in DMA-faehigem internem RAM anlegen -- bei der Vorgabe von
+# 100 Zeilen sind das 368*100*2 = 72 KB am Stueck, die in einem durch TLS
+# zerstueckelten Heap nicht mehr zu bekommen sind:
+#
+#   E spi_master: setup_dma_priv_buffer: Failed to allocate priv TX buffer
+#   E co5300_spi: panel_co5300_draw_bitmap: send color data failed
+#
+# Hier holt das Geraet sogar vier Antworten hintereinander, also gelten
+# beide Gegenmassnahmen erst recht.
+CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT=40
+CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
+CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y
+CONFIG_MBEDTLS_DYNAMIC_FREE_CONFIG_DATA=y

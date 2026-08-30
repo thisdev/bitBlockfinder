@@ -1,0 +1,11 @@
+# Vorlage fuer das eigene WLAN. Kopieren und ausfuellen:
+#     cp local.defaults.example local.defaults
+# "local.defaults" steht in der .gitignore und wird nicht veroeffentlicht.
+
+# --- WLAN ---
+CONFIG_BF_WIFI_SSID="MeinWLAN"
+CONFIG_BF_WIFI_PASS="MeinPasswort"
+
+# --- Sonstiges ---
+CONFIG_BF_POLL_S=60             # wie oft nach einem neuen Block gesehen wird
+#CONFIG_BF_SHOT_ENABLE=y        # nur zum Erstellen von Abbildungen

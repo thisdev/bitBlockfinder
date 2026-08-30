@@ -1,0 +1,14 @@
+# ESP-IDF
+build/
+managed_components/
+dependencies.lock
+
+# Enthaelt das einkompilierte WLAN-Passwort -> niemals veroeffentlichen
+sdkconfig
+sdkconfig.old
+
+# Zugangsdaten -- niemals veroeffentlichen
+local.defaults
+
+# Merkt sich, was zuletzt gebaut wurde
+.flash-last

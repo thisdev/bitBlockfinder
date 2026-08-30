@@ -1,0 +1,33 @@
+menu "Blockfinder"
+
+    config BF_WIFI_SSID
+        string "WLAN-Name (SSID)"
+        default ""
+
+    config BF_WIFI_PASS
+        string "WLAN-Passwort"
+        default ""
+
+    config BF_POLL_S
+        int "Abstand zwischen zwei Nachfragen in Sekunden"
+        default 60
+        range 15 600
+        help
+            So oft wird nachgesehen, ob es einen neuen Block gibt. Gefragt
+            wird nur nach dem Hash des obersten Blocks -- eine Antwort von
+            vierundsechzig Bytes. Der Block selbst wird nur geholt, wenn
+            sich dieser Hash geaendert hat.
+
+            Bloecke kommen im Mittel alle zehn Minuten. Haeufiger als
+            jede Minute nachzufragen bringt darum kaum etwas und belastet
+            einen kostenlosen Dienst ohne Not.
+
+    config BF_SHOT_ENABLE
+        bool "Bildschirmaufnahmen ueber HTTP anbieten"
+        default n
+        help
+            Stellt /shot und /page bereit, um saubere Abbildungen fuer die
+            Dokumentation zu erzeugen, statt das Display abzufotografieren.
+            Nur lesend, aber im Zweifel ausgeschaltet lassen.
+
+endmenu
