@@ -24,7 +24,7 @@ static int  s_index  = 2;          /* Start bei voller Helligkeit */
 static bool s_dimmed = false;
 
 /* Abgesenkt wird auf ein Viertel der gewaehlten Stufe, aber nie ganz aus:
- * Der Monitor soll im Vorbeigehen ablesbar bleiben. */
+ * Die Anzeige soll im Vorbeigehen ablesbar bleiben. */
 static int dim_level(void)
 {
     int d = LEVELS[s_index] / 4;

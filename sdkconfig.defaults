@@ -31,18 +31,21 @@ CONFIG_LV_USE_SNAPSHOT=y
 
 # --- Zeichenpuffer und TLS muessen sich denselben internen Speicher teilen ---
 #
-# Beim bitSolarPlaner hat genau das den Bildaufbau nach zwei
-# TLS-Verbindungen zum Stehen gebracht: Das BSP legt den LVGL-Puffer ohne
-# DMA-Kennzeichnung an, der SPI-Treiber muss deshalb vor jeder Uebertragung
-# eine Kopie in DMA-faehigem internem RAM anlegen -- bei der Vorgabe von
-# 100 Zeilen sind das 368*100*2 = 72 KB am Stueck, die in einem durch TLS
-# zerstueckelten Heap nicht mehr zu bekommen sind:
+# Das BSP legt den LVGL-Zeichenpuffer ohne DMA-Kennzeichnung an. Der
+# SPI-Treiber muss deshalb vor jeder Uebertragung eine Kopie in
+# DMA-faehigem internem RAM anlegen -- bei der Vorgabe von 100 Zeilen sind
+# das 368*100*2 = 72 KB am Stueck. Solange nur gezeichnet wird, geht das
+# gut. Nach mehreren TLS-Verbindungen ist der interne Heap aber
+# zerstueckelt, der Block ist nicht mehr zusammenhaengend zu bekommen, und
+# das Display bleibt stehen:
 #
 #   E spi_master: setup_dma_priv_buffer: Failed to allocate priv TX buffer
 #   E co5300_spi: panel_co5300_draw_bitmap: send color data failed
 #
-# Hier holt das Geraet sogar vier Antworten hintereinander, also gelten
-# beide Gegenmassnahmen erst recht.
+# Dieses Geraet holt beim Start sieben Antworten hintereinander. Zwei
+# Stellschrauben dagegen, beide noetig: ein kleinerer Zeichenpuffer (40
+# Zeilen sind rund 29 KB und auch in einem zerstueckelten Heap zu finden),
+# und mbedTLS gibt seine Puffer zwischen den Verbindungen wieder frei.
 CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT=40
 CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
 CONFIG_MBEDTLS_DYNAMIC_FREE_CA_CERT=y

@@ -108,10 +108,10 @@ esp_err_t chain_fetch_block(block_t *b, const char *hash)
  * uebrigen Werte stehen: Die Seite soll nicht komplett leer sein, nur
  * weil gerade ein Endpunkt hakt. */
 
-static void schwierigkeit(stats_t *s)
+static bool schwierigkeit(stats_t *s)
 {
     cJSON *j = NULL;
-    if (fetch_json(API "/v1/difficulty-adjustment", &j) != ESP_OK) return;
+    if (fetch_json(API "/v1/difficulty-adjustment", &j) != ESP_OK) return false;
 
     s->progress_pct     = (float)zahl(j, "progressPercent", 0);
     s->change_pct       = (float)zahl(j, "difficultyChange", 0);
@@ -120,27 +120,29 @@ static void schwierigkeit(stats_t *s)
      * laufenden Runde. Zehn Minuten sind der Sollwert; darunter heisst,
      * dass Rechenleistung dazugekommen ist. */
     s->block_min        = (float)(zahl(j, "timeAvg", 0) / 60000.0);
-    s->valid            = true;
+    s->diff_valid       = true;
 
     cJSON_Delete(j);
+    return true;
 }
 
-static void gebuehren(stats_t *s)
+static bool gebuehren(stats_t *s)
 {
     cJSON *j = NULL;
-    if (fetch_json(API "/v1/fees/recommended", &j) != ESP_OK) return;
+    if (fetch_json(API "/v1/fees/recommended", &j) != ESP_OK) return false;
 
     s->fast_fee   = (int)zahl(j, "fastestFee", 0);
     s->hour_fee   = (int)zahl(j, "hourFee", 0);
     s->fees_valid = true;
 
     cJSON_Delete(j);
+    return true;
 }
 
-static void mempool(stats_t *s)
+static bool mempool(stats_t *s)
 {
     cJSON *j = NULL;
-    if (fetch_json(API "/mempool", &j) != ESP_OK) return;
+    if (fetch_json(API "/mempool", &j) != ESP_OK) return false;
 
     s->mempool_count = (int)zahl(j, "count", 0);
     /* vsize ist die Groesse in virtuellen Bytes. Geteilt durch eine
@@ -150,12 +152,32 @@ static void mempool(stats_t *s)
     s->mempool_valid = true;
 
     cJSON_Delete(j);
+    return true;
 }
 
-static void top_pools(stats_t *s)
+/* Der Kurs ist die einzige Zahl auf der ersten Seite, die nicht aus dem
+ * Block stammt. Er wird mit den uebrigen Netzzahlen geholt und ist damit
+ * hoechstens zehn Minuten alt -- fuer eine Anzeige an der Wand genau
+ * richtig, und es spart jede Minute einen weiteren Handschlag. */
+static bool preis(stats_t *s)
 {
     cJSON *j = NULL;
-    if (fetch_json(API "/v1/mining/pools/24h", &j) != ESP_OK) return;
+    if (fetch_json(API "/v1/prices", &j) != ESP_OK) return false;
+
+    int usd = (int)zahl(j, "USD", 0);
+    if (usd > 0) {
+        s->price_usd   = usd;
+        s->price_valid = true;
+    }
+
+    cJSON_Delete(j);
+    return usd > 0;
+}
+
+static bool top_pools(stats_t *s)
+{
+    cJSON *j = NULL;
+    if (fetch_json(API "/v1/mining/pools/24h", &j) != ESP_OK) return false;
 
     s->blocks_24h  = (int)zahl(j, "blockCount", 0);
     /* Hashrate in Hash je Sekunde, also eine 21-stellige Zahl. In
@@ -186,27 +208,44 @@ static void top_pools(stats_t *s)
         }
     }
 
+    s->pools_valid = true;
     cJSON_Delete(j);
+    return true;
 }
 
 esp_err_t chain_fetch_stats(stats_t *s)
 {
-    stats_t neu = { 0 };
+    /* Auf dem bisherigen Stand aufsetzen statt bei null anzufangen.
+     * Genau ein misslungener Handschlag unter fuenf hat sonst die
+     * Hashrate auf "0 EH/s" gesetzt und die Poolliste geleert -- fuer
+     * die vollen zehn Minuten bis zum naechsten Versuch. */
+    stats_t neu = *s;
+    bool    was = false;
 
-    schwierigkeit(&neu);
-    gebuehren(&neu);
-    mempool(&neu);
-    top_pools(&neu);
+    /* Die Poolliste bringt auch die Hashrate mit, deshalb muss ihr
+     * Gueltigkeitszeichen vor dem Versuch zurueckgesetzt werden -- sonst
+     * traegt der neue Durchlauf Namen in eine halb alte Liste. */
+    neu.pools = 0;
 
-    /* Nur uebernehmen, wenn wenigstens ein Teil geklappt hat. Sonst
-     * bleiben die alten Zahlen samt Altersangabe stehen. */
-    if (!neu.valid && !neu.fees_valid && !neu.mempool_valid && neu.pools == 0)
-        return ESP_FAIL;
+    was |= schwierigkeit(&neu);
+    was |= gebuehren(&neu);
+    was |= mempool(&neu);
+    was |= top_pools(&neu);
+    was |= preis(&neu);
+
+    if (!was) return ESP_FAIL;
+
+    /* Was diesmal nicht durchkam, steht noch mit seinem alten Wert in
+     * "neu" -- ausser der Poolliste, die oben geleert wurde. */
+    if (neu.pools == 0 && s->pools_valid) {
+        for (int k = 0; k < s->pools; k++) neu.pool[k] = s->pool[k];
+        neu.pools = s->pools;
+    }
 
     neu.fetched = time(NULL);
     *s = neu;
 
-    ESP_LOGI(TAG, "Netz: %.1f min je Block, %.0f EH/s, Mempool %d Transaktionen",
-             neu.block_min, neu.hashrate_eh, neu.mempool_count);
+    ESP_LOGI(TAG, "Netz: %.1f min je Block, %.0f EH/s, Mempool %d Transaktionen, %d USD",
+             neu.block_min, neu.hashrate_eh, neu.mempool_count, neu.price_usd);
     return ESP_OK;
 }

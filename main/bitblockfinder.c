@@ -69,11 +69,11 @@ static void anzeigen(time_t now)
     char hinweis[64];
     long still = s_block.valid ? (long)(now - s_block.fetched) : -1;
     if (still < 0)
-        snprintf(hinweis, sizeof(hinweis), "frage mempool.space ...");
+        snprintf(hinweis, sizeof(hinweis), "asking mempool.space ...");
     else if (still > 3 * CONFIG_BF_POLL_S)
-        snprintf(hinweis, sizeof(hinweis), "kein Abruf seit %ld min", still / 60);
+        snprintf(hinweis, sizeof(hinweis), "no update for %ld min", still / 60);
     else
-        snprintf(hinweis, sizeof(hinweis), "Daten von mempool.space");
+        snprintf(hinweis, sizeof(hinweis), "data from mempool.space");
 
     bsp_display_lock(0);
     ui_update(&st);
@@ -105,7 +105,7 @@ static void loop_task(void *arg)
 
         /* Ohne Uhrzeit waere jede Altersangabe geraten. */
         if (!clock_valid()) {
-            status("warte auf die Uhrzeit ...");
+            status("waiting for the clock ...");
             vTaskDelay(pdMS_TO_TICKS(2000));
             continue;
         }
@@ -114,7 +114,7 @@ static void loop_task(void *arg)
             /* Der erste Durchlauf holt Block und Netzzahlen am Stueck und
              * braucht dafuer ein paar Sekunden. Ohne diese Zeile stuende
              * so lange noch "verbinde mit WLAN" da. */
-            if (!s_block.valid) status("frage mempool.space ...");
+            if (!s_block.valid) status("asking mempool.space ...");
 
             char tip[80];
             if (chain_tip_hash(tip, sizeof(tip)) == ESP_OK) {
@@ -169,9 +169,9 @@ void app_main(void)
      * wenn es mit dem WLAN nicht klappt und man am Geraet steht. */
     backlight_start();
 
-    status("verbinde mit WLAN ...");
+    status("connecting to wifi ...");
     if (net_connect() != ESP_OK) {
-        status("WLAN fehlgeschlagen (local.defaults pruefen)");
+        status("wifi failed - check local.defaults");
         /* Kein return: Der Knopf soll weiter reagieren, und sobald das
          * WLAN doch noch kommt, laeuft die Schleife von selbst an. */
     }

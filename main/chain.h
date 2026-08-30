@@ -27,8 +27,12 @@ typedef struct {
     time_t   fetched;            /* wann zuletzt erfolgreich geholt      */
 } block_t;
 
+/* Jede Gruppe hat ihr eigenes Gueltigkeitszeichen, weil jede aus einer
+ * eigenen Anfrage stammt. Faellt eine aus, bleiben die anderen stehen --
+ * und die ausgefallene behaelt ihre vorigen Werte, statt auf null zu
+ * springen. Eine zehn Minuten alte Hashrate ist mehr wert als eine 0. */
 typedef struct {
-    bool     valid;
+    bool     diff_valid;
     float    progress_pct;       /* Fortschritt in der Schwierigkeitsrunde */
     float    change_pct;         /* erwartete Aenderung beim Retarget      */
     int      remaining_blocks;
@@ -41,6 +45,10 @@ typedef struct {
     int      mempool_count;
     float    mempool_mb;         /* wartende Blockgroesse in MB (vsize)    */
 
+    bool     price_valid;
+    int      price_usd;          /* Bitcoinkurs in ganzen US-Dollar         */
+
+    bool     pools_valid;
     int      pools;              /* gefuellte Eintraege in pool[]          */
     int      blocks_24h;         /* Bloecke insgesamt in 24 Stunden        */
     float    hashrate_eh;        /* geschaetzte Rechenleistung in EH/s      */
@@ -61,6 +69,8 @@ esp_err_t chain_tip_hash(char *buf, size_t len);
 /* Den genannten Block samt Pool holen. Ueberschreibt *b nur bei Erfolg. */
 esp_err_t chain_fetch_block(block_t *b, const char *hash);
 
-/* Netzzahlen fuer die zweite Seite. Teilerfolge sind erlaubt: Faellt eine
- * der vier Anfragen aus, bleiben die anderen Felder gueltig. */
+/* Netzzahlen fuer die zweite Seite. Teilerfolge sind ausdruecklich
+ * erlaubt: Was diesmal nicht durchkam, behaelt seinen letzten Wert.
+ * ESP_FAIL kommt nur zurueck, wenn keine einzige Anfrage geklappt hat --
+ * dann bleibt *s vollstaendig unberuehrt. */
 esp_err_t chain_fetch_stats(stats_t *s);
