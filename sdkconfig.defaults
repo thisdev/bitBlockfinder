@@ -12,10 +12,9 @@ CONFIG_SPIRAM_SPEED_80M=y
 
 CONFIG_FREERTOS_HZ=1000
 
-# Grosse Schriften. Der Name des Pools soll aus zwei Metern lesbar sein.
-CONFIG_LV_FONT_MONTSERRAT_20=y
-CONFIG_LV_FONT_MONTSERRAT_28=y
-CONFIG_LV_FONT_MONTSERRAT_40=y
+# Die Oberflaeche benutzt ausschliesslich die selbst uebersetzte Comic Sans
+# aus main/schrift/. Von Montserrat bleibt nur die 14er, weil LVGL sie als
+# Vorgabeschrift braucht -- die grossen Groessen waeren totes Gewicht.
 
 # app_main baut die Oberflaeche auf und holt danach HTTPS-Antworten.
 # Die Standardgroesse ist dafuer zu knapp.

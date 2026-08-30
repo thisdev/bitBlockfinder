@@ -51,6 +51,36 @@ static void status(const char *text)
     bsp_display_unlock();
 }
 
+/* Den aktuellen Stand aufs Display bringen.
+ *
+ * Eigene Funktion, weil sie zweimal gebraucht wird: einmal in jedem
+ * Durchlauf und einmal sofort, wenn ein neuer Block da ist. Ohne das
+ * zweite Mal haette der erste Block bis nach den vier Abrufen der
+ * zweiten Seite gewartet -- beim Kaltstart eine halbe Minute, in der das
+ * Geraet kaputt aussieht. */
+static void anzeigen(time_t now)
+{
+    ui_state_t st = { .block = &s_block, .stats = &s_stats };
+
+    /* Die Statuszeile nennt im Normalfall die Quelle. Erst wenn der
+     * Abruf mehrfach hintereinander nicht durchkommt, wird daraus eine
+     * Meldung -- eine Zahl ohne Hinweis auf ihr Alter waere schlimmer
+     * als gar keine. */
+    char hinweis[64];
+    long still = s_block.valid ? (long)(now - s_block.fetched) : -1;
+    if (still < 0)
+        snprintf(hinweis, sizeof(hinweis), "frage mempool.space ...");
+    else if (still > 3 * CONFIG_BF_POLL_S)
+        snprintf(hinweis, sizeof(hinweis), "kein Abruf seit %ld min", still / 60);
+    else
+        snprintf(hinweis, sizeof(hinweis), "Daten von mempool.space");
+
+    bsp_display_lock(0);
+    ui_update(&st);
+    ui_set_status(hinweis);
+    bsp_display_unlock();
+}
+
 /* Wie lange nach einem Fehlschlag gewartet wird.
  *
  * Ein Handshake mit mempool.space geht auf diesem Board gelegentlich
@@ -95,6 +125,7 @@ static void loop_task(void *arg)
                         strlcpy(bekannt, tip, sizeof(bekannt));
                         ESP_LOGI(TAG, "Neuer Block %d von %s",
                                  s_block.height, s_block.pool);
+                        anzeigen(time(NULL));   /* sofort, nicht erst nachher */
                     } else {
                         naechster_tip = now + wartezeit();
                     }
@@ -104,30 +135,16 @@ static void loop_task(void *arg)
             }
         }
 
-        if (now >= naechste_zahlen) {
+        /* Die Zahlen der zweiten Seite haben Zeit. Sie kosten vier
+         * Abrufe, und solange auf der ersten Seite noch nichts steht,
+         * waere jede Sekunde dafuer an der falschen Stelle ausgegeben. */
+        if (s_block.valid && now >= naechste_zahlen) {
             naechste_zahlen = now + (chain_fetch_stats(&s_stats) == ESP_OK
                                      ? STATS_MIN * 60 : RETRY_S * 4);
         }
 
-        ui_state_t st = { .block = &s_block, .stats = &s_stats };
-
-        /* Die Statuszeile nennt im Normalfall die Quelle. Erst wenn der
-         * Abruf mehrfach hintereinander nicht durchkommt, wird daraus
-         * eine Meldung -- eine Zahl ohne Hinweis auf ihr Alter waere
-         * schlimmer als gar keine. */
-        char hinweis[64];
-        long still = s_block.valid ? (long)(now - s_block.fetched) : -1;
-        if (still < 0)
-            snprintf(hinweis, sizeof(hinweis), "warte auf mempool.space ...");
-        else if (still > 3 * CONFIG_BF_POLL_S)
-            snprintf(hinweis, sizeof(hinweis), "kein Abruf seit %ld min", still / 60);
-        else
-            snprintf(hinweis, sizeof(hinweis), "Daten von mempool.space");
-
-        bsp_display_lock(0);
-        ui_update(&st);
-        ui_set_status(hinweis);
-        bsp_display_unlock();
+        /* Die Abrufe oben koennen Sekunden gedauert haben. */
+        anzeigen(time(NULL));
 
         vTaskDelay(pdMS_TO_TICKS(TICK_MS));
     }

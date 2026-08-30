@@ -10,10 +10,10 @@ Fläche, darunter die Minuten. Alles andere ist Begründung und steht klein.
 
 Gewischt wird mit dem Finger, zwei Punkte am unteren Rand zeigen, wo man ist.
 
-1. **Block.** Wer ihn gefunden hat, wie lange das her ist, die Blockhöhe,
-   die Zahl der Transaktionen und die Belohnung samt Gebühren. Dauert es
-   länger als zwanzig Minuten, wird die Altersangabe gelb — kein Fehler,
-   nur bemerkenswert.
+1. **Block.** Wer ihn gefunden hat, auf goldenem Grund, darunter wie lange
+   das her ist, die Blockhöhe, die Zahl der Transaktionen und die Belohnung
+   samt Gebühren. Die Altersangabe ist grün, solange der Block frisch ist,
+   und wird nach zwanzig Minuten gelb — kein Fehler, nur bemerkenswert.
 2. **Netz und Gerät.** Mittlere Blockzeit, geschätzte Hashrate, die
    nächste Schwierigkeitsanpassung, Gebührenempfehlung, Mempool. Darunter
    die drei Pools mit den meisten Blöcken der letzten 24 Stunden — das
@@ -22,6 +22,32 @@ Gewischt wird mit dem Finger, zwei Punkte am unteren Rand zeigen, wo man ist.
 
 Der obere der beiden Knöpfe schaltet die Helligkeit in drei Stufen durch.
 Nach 30 Sekunden ohne Berührung dimmt das Display, ganz aus geht es nie.
+
+## Aussehen
+
+Angelehnt an [mempool.space](https://mempool.space) — und zwar mit deren
+echten Farben, aus dem Stylesheet der Seite gezogen statt geschätzt:
+
+| Farbe | wofür |
+|---|---|
+| `#11131f` | Untergrund (`--bs-body-bg`) |
+| `#272f4e` | Kacheln und Karten (`--bs-secondary`) |
+| `#9d7c05` → `#d5a90a` | der Goldverlauf ihrer Blockkästen |
+| `#007cfa` | Blockhöhen — bei mempool sind das Verweise |
+| `#00ddff` / `#0aab2f` / `#ffc107` / `#dc3545` | Info, gut, Achtung, Fehler |
+
+Der Goldkasten ist das Erkennungszeichen: Auf mempool.space steht ein
+gefundener Block genau so da. Hier trägt er den Namen dessen, der ihn
+gefunden hat.
+
+Die Schrift ist **Comic Sans MS**, mit `lv_font_conv` in vier Größen
+(14, 20, 28, 40) bei 4 bpp nach `main/schrift/` übersetzt. Von LVGLs
+eingebautem Montserrat bleibt nur die 14er, weil die Bibliothek eine
+Vorgabeschrift braucht — die großen Größen wären totes Gewicht.
+
+> Comic Sans MS gehört Microsoft und liegt hier als Bitmap einkompiliert.
+> Für ein öffentliches Repository wäre **Comic Neue** (SIL OFL) der
+> saubere Tausch — gleiche Anmutung, frei weitergebbar.
 
 ## Woher die Daten kommen
 
